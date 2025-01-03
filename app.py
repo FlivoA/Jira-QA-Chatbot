@@ -34,18 +34,25 @@ def get_project_issues(project_key):
 def parse_task_details(issues):
     tasks = []
     for issue in issues:
+        fields = issue.get("fields", {})
+        assignee = fields.get("assignee")
+        reporter = fields.get("reporter")
+        priority = fields.get("priority")
+        status = fields.get("status")
+
         task = {
-            "id": issue.get("id"),
-            "summary": issue["fields"].get("summary", "N/A"),
-            "status": issue["fields"]["status"].get("name", "N/A"),
-            "assignee": issue["fields"].get("assignee", {}).get("displayName", "Unassigned"),
-            "duedate": issue["fields"].get("duedate", "N/A"),
-            "startdate": issue["fields"].get("created", "N/A"),
-            "reporter": issue["fields"].get("reporter", {}).get("displayName", "N/A"),
-            "priority": issue["fields"]["priority"].get("name", "N/A")
+            "id": issue.get("id", "N/A"),
+            "summary": fields.get("summary", "N/A"),
+            "status": status.get("name", "N/A") if status else "N/A",
+            "assignee": assignee.get("displayName", "Unassigned") if assignee else "Unassigned",
+            "duedate": fields.get("duedate", "N/A"),
+            "startdate": fields.get("created", "N/A"),
+            "reporter": reporter.get("displayName", "N/A") if reporter else "N/A",
+            "priority": priority.get("name", "N/A") if priority else "N/A"
         }
         tasks.append(task)
     return tasks
+
 
 # Function to dynamically answer queries about Jira project using a QA model
 def get_dynamic_jira_answer(query, project_key):
