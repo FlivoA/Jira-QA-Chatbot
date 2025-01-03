@@ -53,7 +53,6 @@ def parse_task_details(issues):
         tasks.append(task)
     return tasks
 
-
 # Function to dynamically answer queries about Jira project using a QA model
 def get_dynamic_jira_answer(query, project_key):
     issues = get_project_issues(project_key)
@@ -62,19 +61,33 @@ def get_dynamic_jira_answer(query, project_key):
         return "No issues found for this project."
 
     tasks = parse_task_details(issues)
-    context = "Here are the tasks in the project:\n"
+    context = "Here are the tasks in the project:\n\n"
     for task in tasks:
-        context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
-
-    response = qa_pipeline(question=query, context=context)
-    return response['answer']
+        context += (
+            f"Task ID: {task['id']} | "
+            f"Summary: {task['summary']} | "
+            f"Status: {task['status']} | "
+            f"Assignee: {task['assignee']} | "
+            f"Due Date: {task['duedate']} | "
+            f"Start Date: {task['startdate']} | "
+            f"Reporter: {task['reporter']} | "
+            f"Priority: {task['priority']}\n"
+        )
+    return context
 
 # Streamlit UI for interacting with the app
 st.title('Jira QA Chatbot')
 
 project_key = st.text_input("Enter your Jira project key:")
-query = st.text_input("Ask a question about your Jira tasks:")
 
-if project_key and query:
-    answer = get_dynamic_jira_answer(query, project_key)
-    st.write(f"Answer: {answer}")
+if project_key:
+    # Fetch and display the task context
+    context = get_dynamic_jira_answer("", project_key)
+    if context != "No issues found for this project.":
+        st.text(context)
+    
+    # Ask a query once the context is displayed
+    query = st.text_input("Ask a question about your Jira tasks:")
+    if query:
+        response = qa_pipeline(question=query, context=context)
+        st.write(f"Answer: {response['answer']}")
