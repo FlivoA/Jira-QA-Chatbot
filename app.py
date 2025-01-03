@@ -53,19 +53,8 @@ def parse_task_details(issues):
         tasks.append(task)
     return tasks
 
-
 # Function to dynamically answer queries about Jira project using a QA model
-def get_dynamic_jira_answer(query, project_key):
-    issues = get_project_issues(project_key)
-
-    if not issues:
-        return "No issues found for this project."
-
-    tasks = parse_task_details(issues)
-    context = "Here are the tasks in the project:\n"
-    for task in tasks:
-        context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
-
+def get_dynamic_jira_answer(query, context):
     response = qa_pipeline(question=query, context=context)
     return response['answer']
 
@@ -73,8 +62,18 @@ def get_dynamic_jira_answer(query, project_key):
 st.title('Jira QA Chatbot')
 
 project_key = st.text_input("Enter your Jira project key:")
-query = st.text_input("Ask a question about your Jira tasks:")
+if project_key:
+    issues = get_project_issues(project_key)
+    if issues:
+        tasks = parse_task_details(issues)
+        context = "Here are the tasks in the project:\n"
+        for task in tasks:
+            context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
+        st.write(context)
 
-if project_key and query:
-    answer = get_dynamic_jira_answer(query, project_key)
-    st.write(f"Answer: {answer}")
+        query = st.text_input("Ask a question about your Jira tasks:")
+        if query:
+            answer = get_dynamic_jira_answer(query, context)
+            st.write(f"Answer: {answer}")
+    else:
+        st.write("No issues found for this project.")
