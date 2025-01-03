@@ -1,67 +1,55 @@
-import os
-import subprocess
 import streamlit as st
-
-# Check if 'transformers' is installed, if not, install it
-try:
-    import transformers
-except ImportError:
-    subprocess.check_call([os.sys.executable, "-m", "pip", "install", "transformers"])
-
-# Now we can safely import transformers
 from transformers import pipeline
+import torch
+import requests
 
-# Set up Jira credentials
+# Install dependencies if not already installed
+# Uncomment the following lines if you're running this locally and need to install the packages
+# !pip install transformers
+# !pip install datasets
+# !pip install torch
+# !pip install requests
+
+# Set up Jira credentials (Secure your credentials properly in real scenarios)
 JIRA_URL = "https://pavannekkanti1234.atlassian.net/"
 JIRA_EMAIL = "pavannekkanti1234@gmail.com"
-JIRA_API_TOKEN = "your-jira-api-token"  # Replace with your actual Jira API token
+JIRA_API_TOKEN = "Your_Jira_API_Token"
 
-# Load the QA pipeline with a model suited for Question-Answering
-qa_pipeline = pipeline("question-answering", model="deepset/roberta-base-squad2")
-
-# Function to fetch project issues from Jira (Example)
+# Function to fetch Jira issues (dummy function for illustration)
 def get_project_issues(project_key):
-    # Implement your Jira API call here to fetch issues based on the project key
-    # For now, this is a placeholder returning a mock response
-    return [
-        {
-            "id": "10001",
-            "summary": "Task 1",
-            "status": "In Progress",
-            "assignee": "John Doe",
-            "duedate": "2025-01-10",
-            "startdate": "2025-01-03",
-            "reporter": "Jane Smith",
-            "priority": "High"
-        },
-        {
-            "id": "10002",
-            "summary": "Task 2",
-            "status": "To Do",
-            "assignee": "Alice Brown",
-            "duedate": "2025-01-15",
-            "startdate": "2025-01-05",
-            "reporter": "Bob White",
-            "priority": "Medium"
-        }
-    ]
+    # Example Jira API call, replace with actual code
+    response = requests.get(
+        f"{JIRA_URL}/rest/api/2/search?jql=project={project_key}",
+        auth=(JIRA_EMAIL, JIRA_API_TOKEN)
+    )
+    if response.status_code == 200:
+        return response.json()['issues']
+    else:
+        return []
 
-# Function to parse task details (Mock)
+# Function to parse task details (dummy function for illustration)
 def parse_task_details(issues):
-    # Mocking the parsing of issues
     tasks = []
     for issue in issues:
-        tasks.append({
-            "id": issue["id"],
-            "summary": issue["summary"],
-            "status": issue["status"],
-            "assignee": issue["assignee"],
-            "duedate": issue["duedate"],
-            "startdate": issue["startdate"],
-            "reporter": issue["reporter"],
-            "priority": issue["priority"]
-        })
+        task = {
+            'id': issue['id'],
+            'summary': issue['fields']['summary'],
+            'status': issue['fields']['status']['name'],
+            'assignee': issue['fields'].get('assignee', {}).get('displayName', 'Unassigned'),
+            'duedate': issue['fields'].get('duedate', 'No due date'),
+            'startdate': issue['fields'].get('created', 'No start date'),
+            'reporter': issue['fields']['reporter']['displayName'],
+            'priority': issue['fields']['priority']['name']
+        }
+        tasks.append(task)
     return tasks
+
+# Load the QA pipeline only once to avoid reloading during every function call
+@st.cache_resource
+def load_qa_pipeline():
+    return pipeline("question-answering", model="deepset/roberta-base-squad2")
+
+qa_pipeline = load_qa_pipeline()
 
 # Function to dynamically answer queries about Jira project using a QA model
 def get_dynamic_jira_answer(query, project_key):
@@ -79,18 +67,26 @@ def get_dynamic_jira_answer(query, project_key):
     for task in tasks:
         context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
 
+    # Debugging: Print the context
+    st.write(f"Context:\n{context}\n")
+
     # Pass the query and context to the QA pipeline
     response = qa_pipeline(question=query, context=context)
+
+    # Debugging: Print raw model response to understand the output
+    st.write(f"Raw Model Response:\n{response}")
 
     # Return the answer
     return response['answer']
 
-# Streamlit UI for interacting with the app
-st.title('Jira QA Chatbot')
+# Streamlit UI
+st.title("Jira Project Query Answering")
+project_key = st.text_input("Enter Jira Project Key:", "FLIV")  # Replace with your Jira project key
 
-project_key = st.text_input("Enter your Jira project key:")
-query = st.text_input("Ask a question about your Jira tasks:")
+# Example Query
+query = st.text_input("Enter your query about the project:", "Who is the reporter for Task 10002?")
 
-if project_key and query:
-    answer = get_dynamic_jira_answer(query, project_key)
-    st.write(f"Answer: {answer}")
+if query and project_key:
+    response = get_dynamic_jira_answer(query, project_key)
+    st.write("Response:")
+    st.write(response)
