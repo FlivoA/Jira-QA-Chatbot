@@ -66,10 +66,22 @@ if project_key:
     issues = get_project_issues(project_key)
     if issues:
         tasks = parse_task_details(issues)
-        context = "Here are the tasks in the project:\n"
+        # Generate a well-formatted context
+        context = "Here are the tasks in the project:\n\n"
         for task in tasks:
-            context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
-        st.write(context)
+        context += (
+            f"Task ID: {task['id']}\n"
+            f"Summary: {task['summary']}\n"
+            f"Status: {task['status']}\n"
+            f"Assignee: {task['assignee']}\n"
+            f"Due Date: {task['duedate']}\n"
+            f"Start Date: {task['startdate']}\n"
+            f"Reporter: {task['reporter']}\n"
+            f"Priority: {task['priority']}\n"
+            f"{'-'*40}\n"
+        )
+st.text(context)
+
 
         query = st.text_input("Ask a question about your Jira tasks:")
         if query:
