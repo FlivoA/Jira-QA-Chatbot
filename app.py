@@ -47,6 +47,21 @@ def parse_task_details(issues):
         tasks.append(task)
     return tasks
 
+# Function to dynamically answer queries about Jira project using a QA model
+def get_dynamic_jira_answer(query, project_key):
+    issues = get_project_issues(project_key)
+
+    if not issues:
+        return "No issues found for this project."
+
+    tasks = parse_task_details(issues)
+    context = "Here are the tasks in the project:\n"
+    for task in tasks:
+        context += f"\nTask ID: {task['id']} | Summary: {task['summary']} | Status: {task['status']} | Assignee: {task['assignee']} | Due Date: {task['duedate']} | Start Date: {task['startdate']} | Reporter: {task['reporter']} | Priority: {task['priority']}"
+
+    response = qa_pipeline(question=query, context=context)
+    return response['answer']
+
 # Streamlit UI for interacting with the app
 st.title('Jira QA Chatbot')
 
